@@ -37,6 +37,9 @@ def OnFinish():
         endy   = starty
         starty = tempy
 
+    if (endx - startx) is 0 or (endy - starty) is 0:
+        Close()
+
     im   = ImageGrab.grab((startx, starty, endx, endy))
     sIm  = os.fdopen(tmpId, "w+b")
 
@@ -70,7 +73,7 @@ def OnCancel(event):
     Close()
     return False
 
-def Close(url):
+def Close(url = None):
     win32api.PostThreadMessage(main_thread_id, win32con.WM_QUIT, 0, 0)
     if url is not None:
         toClipboard(url)
