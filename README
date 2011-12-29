@@ -1,0 +1,9 @@
+# Capture
+
+Source code for the open-source quick screen grabbing tool Capture, insipired by the now-ad-cluttered gyazo.
+
+## Dependencies
+
+* pywin32
+* pyHook
+* Python Imaging Library
