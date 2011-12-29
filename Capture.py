@@ -1,6 +1,6 @@
-import os, httplib, tempfile
+import os, sys, httplib, tempfile
 import win32api, win32con
-import win32clipboard as w
+import win32clipboard, webbrowser
 import pythoncom, pyHook
 import Image, ImageGrab
 
@@ -24,7 +24,7 @@ def OnEnd(event):
     return False
 
 def OnFinish():
-    global startx, starty, endx, endy, t
+    global startx, starty, endx, endy
 
     tmpId, tmpPath = tempfile.mkstemp()
 
@@ -53,21 +53,35 @@ def OnFinish():
     status   = response.read()
 
     if "YES" in status:
-        url = status[4:-0]
-        
-        w.OpenClipboard()
-        w.EmptyClipboard()
-        w.SetClipboardData(w.CF_TEXT, url)
-        w.CloseClipboard()
+        url = status[5:]
+    else:
+        print "Error, welp"
     
     conn.close()
+    Close(url)
 
-    win32api.PostThreadMessage(main_thread_id, win32con.WM_QUIT, 0, 0);
+def toClipboard(string):
+    win32clipboard.OpenClipboard()
+    win32clipboard.EmptyClipboard()
+    win32clipboard.SetClipboardText(string)
+    win32clipboard.CloseClipboard()
+
+def OnCancel(event):
+    Close()
+    return False
+
+def Close(url):
+    win32api.PostThreadMessage(main_thread_id, win32con.WM_QUIT, 0, 0)
+    if url is not None:
+        toClipboard(url)
+        webbrowser.open_new_tab(url)
+    sys.exit(0)
 
 hm = pyHook.HookManager()
 
-hm.MouseLeftDown = OnStart
-hm.MouseLeftUp   = OnEnd
+hm.MouseLeftDown  = OnStart
+hm.MouseLeftUp    = OnEnd
+hm.MouseRightDown = OnCancel
 
 hm.HookMouse()
 
