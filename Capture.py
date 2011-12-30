@@ -1,5 +1,6 @@
-import os, sys, httplib, tempfile, string, random, struct
+import os, sys, string, random, struct
 import win32api, win32con, win32gui
+import urllib2, MultipartPostHandler
 import win32clipboard, webbrowser, yaml
 import Image, ImageGrab
 
@@ -11,8 +12,8 @@ scr_w, scr_h   = win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN), win32ap
 
 PATH           = os.path.abspath("./") + "\\"
 CONF           = yaml.load(open(PATH + 'config.yaml', 'r'))
-DOMAIN         = CONF['domain']
-KEY            = CONF['key']
+
+main_thread_id = win32api.GetCurrentThreadId()
 
 class MainWindow:
     def __init__(self):
@@ -56,7 +57,6 @@ class MainWindow:
                                             None)
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
     def OnDestroy(self, hwnd, message, wparam, lparam):
-        win32gui.PostQuitMessage(0)
         return True
     def OnStart(self, hwnd, message, wparam, lparam):
         global startx, starty
@@ -65,11 +65,13 @@ class MainWindow:
     def OnEnd(self, hwnd, message, wparam, lparam):
         global endx, endy
         endx, endy = win32gui.GetCursorPos()
+        win32gui.SetCursor(win32gui.LoadCursor(0, win32con.IDC_WAIT))
         url = Finish()
-        if CONF['copy_link']:
-            set_clipboard(url)
-        if CONF['open_browser']:
-            webbrowser.open_new_tab(url)
+        if url:
+            if CONF['copy_link']:
+                set_clipboard(url)
+            if CONF['open_browser'] and not CONF['local_only']:
+                webbrowser.open(url)
         self.CloseWindow()
         return True
     def OnCancel(self, hwnd, message, wparam, lparam):
@@ -77,11 +79,12 @@ class MainWindow:
         return True
     def CloseWindow(self):
         win32gui.DestroyWindow(self.hwnd)
+        win32api.PostThreadMessage(main_thread_id, win32con.WM_QUIT, 0, 0)
 
 def Finish():
     global startx, starty, endx, endy
 
-    tmpId, tmpPath = tempfile.mkstemp()
+    new_filename   = get_random_filename()
     url            = None
 
     if startx > endx:
@@ -97,39 +100,40 @@ def Finish():
         return False
 
     im   = ImageGrab.grab((startx, starty, endx, endy))
-    sIm  = os.fdopen(tmpId, "w+b")
+    sIm  = open(new_filename, "w+b")
 
     im.save(sIm, "PNG")
-
     sIm.seek(0)
 
     if CONF['local_only'] is True:
-        new_filename = get_random_filename()
-        im.save(new_filename, "PNG")
         return new_filename
     else:
-        headers = {"Content-type": "application/octet-stream"}
-        conn    = httplib.HTTPConnection(DOMAIN)
-        
-        conn.request("POST", "/?key=" + KEY, sIm.read(), headers)
-        
-        response = conn.getresponse()
-        status   = response.read()
-
-        conn.close()
-
-        if "YES" in status:
-            url = status[5:]
-        else:
-            win32api.MessageBox(w.hwnd, 'Error while uploading, welp', 'Capture: Error', win32con.MB_OK | win32con.MB_ICONERROR)
+        params = {'file': sIm}
+        opener = urllib2.build_opener(MultipartPostHandler.MultipartPostHandler)
+        urllib2.install_opener(opener)
+            
+        try:
+            req = urllib2.Request("http://" + CONF['domain'] + "/?key=" + CONF['key'], params)
+        except Exception:
+            win32api.MessageBox(w.hwnd, 'No connection', 'Capture: Error', win32con.MB_OK | win32con.MB_ICONERROR)
             return False
+        else:
+            status   = urllib2.urlopen(req).read().strip()
+            sIm.close()
 
-        return url
+            if "YES" in status:
+                url = status[5:]
+            else:
+                win32api.MessageBox(w.hwnd, 'Error while uploading, welp', 'Capture: Error', win32con.MB_OK | win32con.MB_ICONERROR)
+                return False
+
+            return url
+        return False
 
 def set_clipboard(string):
-    win32clipboard.OpenClipboard()
+    win32clipboard.OpenClipboard(w.hwnd)
     win32clipboard.EmptyClipboard()
-    win32clipboard.SetClipboardText(string)
+    win32clipboard.SetClipboardData(win32con.CF_TEXT, string)
     win32clipboard.CloseClipboard()
 
 def random_string(size=6, chars=string.ascii_uppercase + string.digits):
@@ -139,7 +143,7 @@ def get_random_filename():
     if not os.path.exists(PATH + "i"):
         os.mkdir(PATH + "i")
         
-    name = PATH + "i\\" + toRandom() + ".png"
+    name = PATH + "i\\" + random_string() + ".png"
 
     try:
         open(name)
@@ -149,6 +153,7 @@ def get_random_filename():
     get_random_filename()
 
 w = MainWindow()
-w.CreateWindow()
 
-win32gui.PumpMessages()
+if __name__ == "__main__":
+    w.CreateWindow()
+    win32gui.PumpMessages()

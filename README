@@ -2,7 +2,40 @@
 
 Source code for the open-source quick screen grabbing tool Capture, insipired by the now-ad-cluttered gyazo.
 
+## Functions
+
+* Start programme
+* Draw rectangle over the place you want to screenshot (as of now, the rectangle is invisible)
+* When you release your left mouse button, the screenshot will be saved locally and uploaded to the server
+* The URL of the new screenshot will be copied to your clipboard
+* The screenshot will be opened in your browser
+
+## Configuration
+
+config.yaml lets you set a few things:
+
+* domain:     (string);     The domain of the remote server to upload the screenshot to
+* key:        (string);     A simple API key of the domain
+* local_only: (true/false); Only save the screenshot locally, do not upload/open in browser
+* copy_link:  (true/false); Copy the URL (or file path if local_only) to the clipboard
+* open_link:  (true/false); Open the URL in the browser (only if not local)
+
+## Compilation
+
+This can be compiled to an .exe with py2exe. A preset setup.py as well as **ready precompiled executables are coming soon**.
+
+## Issues
+
+As of right now, Norton 360 seems to see Capture as a security threat when it tries to upload the screenshot to the server, so it deletes/quarantines the executable. Microsoft Security Essentials doesn't do that, I don't know about other anti-viruses yet.
+
+## To-do
+
+* Draw rectangle around the selected area!
+* Fix the Norton 360 issue described above somehow
+* Create a nice website/service for this tool
+
 ## Dependencies
 
 * pywin32
 * Python Imaging Library
+* pyYAML
