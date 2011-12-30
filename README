@@ -5,5 +5,4 @@ Source code for the open-source quick screen grabbing tool Capture, insipired by
 ## Dependencies
 
 * pywin32
-* pyHook
 * Python Imaging Library
