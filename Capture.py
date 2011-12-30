@@ -9,9 +9,10 @@ endx, endy     = 0, 0
 scr_x, scr_y   = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN), win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
 scr_w, scr_h   = win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN), win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
 
-DOMAIN         = "cptr.zeonfederated.com"
 PATH           = os.path.abspath("./") + "\\"
 CONF           = yaml.load(open(PATH + 'config.yaml', 'r'))
+DOMAIN         = CONF['domain']
+KEY            = CONF['key']
 
 class MainWindow:
     def __init__(self):
@@ -110,7 +111,7 @@ def Finish():
         headers = {"Content-type": "application/octet-stream"}
         conn    = httplib.HTTPConnection(DOMAIN)
         
-        conn.request("POST", "/", sIm.read(), headers)
+        conn.request("POST", "/?key=" + KEY, sIm.read(), headers)
         
         response = conn.getresponse()
         status   = response.read()
